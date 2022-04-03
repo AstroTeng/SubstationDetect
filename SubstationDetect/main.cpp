@@ -1,4 +1,5 @@
-﻿#include <opencv2/opencv.hpp>
+﻿#define _CRT_SECURE_NO_WARNINGS
+#include <opencv2/opencv.hpp>
 #include <iostream>
 #include <fstream>
 #include <cstdio>
@@ -8,6 +9,8 @@
 #include "CoutShape.h"
 #include "Detect.h"
 #include "TopoDetect.h"
+#include "TopoDetectYolo.h"
+#include <yolo_v2_class.hpp>
 using namespace std;
 using namespace cv;
 static String nameBuffer1[8] = {
@@ -50,7 +53,37 @@ static String nameBuffer3[2] = {
 #define WEIGHT_SUFFIX "dat"
 
 
-
+vector<Rect> CalcuCentroid(vector<Rect> oriRect, Mat img) {
+	vector<Rect> out;
+	Mat cpy2 = img.clone();
+	threshold(cpy2, cpy2, 180, 255, THRESH_BINARY_INV);
+	cvtColor(cpy2, cpy2, COLOR_RGB2GRAY);
+	cout << "正在计算各线框质心……";
+	for (int i = 0; i < oriRect.size() ; i++) {//调整中心点
+		double X = 0, Y = 0, T = 0;
+		for (int m = oriRect[i].y; m < oriRect[i].y + oriRect[i].height; m++)
+			for (int n = oriRect[i].x; n < oriRect[i].x + oriRect[i].width; n++) {
+				T += (double)cpy2.at<uchar>(m, n);
+				Y += (double)cpy2.at<uchar>(m, n) * m;
+				X += (double)cpy2.at<uchar>(m, n) * n;
+			}
+		//cout << i << " " << oriRect.size() << " " << endl;
+		Y /= T;
+		X /= T;
+		Point core(X, Y);
+		//rectangle(cpy, oriRect[i], Scalar(200,0,0), 1);
+		//circle(cpy, core, 1, Scalar(0, 0, 200),1);
+		Rect fined = oriRect[i];
+		double finedLength = max(fined.width, fined.height);
+		fined.x = core.x - finedLength / 2;
+		fined.y = core.y - finedLength / 2;
+		fined.width = finedLength;
+		fined.height = finedLength;
+		out.push_back(fined);
+	}
+	cout << "完成" << endl;
+	return out;
+}
 void GeneratePipeline() {//此函数中存放图元生成流程5
 	RNG rng(getTickCount());
 	vector<String>pathVessel;
@@ -89,6 +122,7 @@ void GeneratePipeline() {//此函数中存放图元生成流程5
 	}
 }
 void DetectPipeline(String d_path,Net *d_net,String dat_path) {
+
 #define DES_HEIGHT 3000
 #define FIN_HEIGHT 750
 	Mat ori = imread(d_path);
@@ -291,7 +325,63 @@ void DetectPipeline(String d_path,Net *d_net,String dat_path) {
 	return;
 
 }
+void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
+	TopoDetectYolo subTopo(9);
+	Detector subDetect(cfg_path, weight_path);
+	vector<Rect> eleRects;
 
+	Mat img = imread(img_path);
+	Mat img2 = img.clone();
+
+
+	double ratio = 750 / (double)img.rows;
+	//resize(img, img, Size(0, 0), ratio, ratio);
+	vector<bbox_t> eleBoxes = subDetect.detect(img_path);
+
+	for (int index = 0; index < eleBoxes.size(); index++) {
+		Rect rect(eleBoxes[index].x, eleBoxes[index].y, eleBoxes[index].w, eleBoxes[index].h);
+		eleRects.push_back(rect);
+	}
+	vector<Rect> eleRectsFined = CalcuCentroid(eleRects, img);
+	for (int index = 0; index < eleRectsFined.size(); index++) {
+		rectangle(img2, eleRectsFined[index], Scalar(255, 255, 255), -1);
+		subTopo.AddObj(eleRectsFined[index], eleBoxes[index].obj_id);
+	}
+		
+
+	vector<vector<Point>> contours;
+	vector<Vec4i> hierarchy;
+	threshold(img2, img2, 200, 255, THRESH_BINARY);
+	cvtColor(img2, img2, COLOR_RGB2GRAY);
+	Canny(img2, img2, 3, 9, 3);
+	Mat e3 = getStructuringElement(MORPH_CROSS, Size(5, 5));
+	for (int i = 0; i < 1; i++) {
+		dilate(img2, img2, e3, Point(-1, -1), 1, BORDER_CONSTANT);
+	}
+	findContours(img2, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+	for (int i = 0; i < contours.size(); i++) {//绘制导线
+		subTopo.AddObj(contours[i]);//在此处往拓扑识别类中添加导线自由线框
+		//drawContours(img, contours, i, Scalar(0,0,255), 1);
+		//imshow("1", img);
+		//waitKey(1);
+	}
+	for (int index = 0; index < subTopo.objPixelVessel.size(); index++) {
+		Scalar color(0, 0, 255);
+		if (subTopo.objTypeVessel[index] == subTopo.classes - 1) continue;
+		if (subTopo.objTypeVessel[index] == subTopo.classes ) continue;
+		if (subTopo.objTypeVessel[index] == subTopo.classes + 1) continue;
+		putText(img, to_string(index),
+			subTopo.objPixelVessel[index][0], FONT_HERSHEY_SCRIPT_SIMPLEX, 0.5, Scalar(200, 20, 200),2);
+
+	}
+
+	subTopo.SetSize(img2.size());
+	subTopo.ResetGraph();
+	subTopo.DetectTopo();
+	subTopo.ShowTopo(TOPO_LINE_EXCEPT);
+	imshow("img", img);
+	waitKey();
+}
 int main()
 {
 
@@ -384,6 +474,7 @@ int main()
 	New1.Add(Layer_fc(New1.l_row * New1.l_col * New1.l_chan, 120));
 	New1.Add(Layer_fc(120, 6));
 	New1.n_buff = nameBuffer2;*/
+	
 
 	Net New2("New2", 16, 16, 20);
 	New2.Add(Layer_cnn(1, 5, 3));
@@ -396,8 +487,12 @@ int main()
 	New2.n_buff = nameBuffer1;
 
 	//GeneratePipeline();
-	if (1) {
-		DetectPipeline("pics\\neat2.jpg", &New2, "data-new\\New2-c4.dat");
+	if (0) {
+		DetectPipeline("pics\\draw1.jpg", &New2, "data-new\\New2-c4.dat");
+		return 0;
+	}
+	else if (1) {
+		DetectPipeline2("data\\obj.cfg", "data\\obj_last8000.weights", "pics\\neatopo1.jpg");
 		return 0;
 	}
 

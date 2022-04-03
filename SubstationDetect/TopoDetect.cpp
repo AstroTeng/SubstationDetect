@@ -167,6 +167,7 @@ vector< vector<Point>> RectFetchEdge(Rect in) {
 	out.push_back(tmp4);
 	return out;
 }
+
 vector<int> SetPointOn(Mat &canva,vector<Point> p2draw,int objNum){
     vector<int> collisionObjVesssel;//返回的是在绘制过程中碰撞的OBJ序号
 	collisionObjVesssel.push_back(objNum);
@@ -184,7 +185,12 @@ vector<int> SetPointOn(Mat &canva,vector<Point> p2draw,int objNum){
 			canva.at<float>(y, x) = objNum; 
 		}
     }
+
     set<int> s(collisionObjVesssel.begin(),collisionObjVesssel.end());
     collisionObjVesssel.assign(s.begin(), s.end());//消除重复
+
+	for (int i = 0; i < collisionObjVesssel.size(); i++)
+		cout <<"cc"<< collisionObjVesssel[i] << endl;
+
     return collisionObjVesssel;
 }
