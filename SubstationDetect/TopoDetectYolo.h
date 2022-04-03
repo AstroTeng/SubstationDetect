@@ -2,6 +2,7 @@
 #include<opencv2/opencv.hpp>
 #include"TopoDetect.h"
 vector<int> SetPoints(Mat& canva, vector<Point> p2draw, int objNum);
+void SetLableBox(Mat& canva, Rect box, Scalar color, string text);
 const static vector<string> subEleNames = {
 			"三相变压器",
 			"两相变压器",
@@ -14,6 +15,19 @@ const static vector<string> subEleNames = {
 			"c_ud",
 			"c_lr",
 			"导线"
+};
+const static vector<Scalar> subEleColors = {
+			Scalar(51,51,255),
+			Scalar(0,128,255),
+			Scalar(255,128,0),
+			Scalar(204,0,102),
+			Scalar(0,204,102),
+			Scalar(102,0,204),
+			Scalar(0,204,204),
+			Scalar(127,0,255),
+			Scalar(64,64,64),
+			Scalar(64,64,64),
+			Scalar(64,64,64)
 };
 class TopoDetectYolo
 {

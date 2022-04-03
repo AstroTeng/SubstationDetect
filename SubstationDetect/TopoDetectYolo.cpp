@@ -139,3 +139,11 @@ vector<int> SetPoints(Mat& canva, vector<Point> p2draw, int objNum) {
 
 	return collisionObjVesssel;
 }
+void SetLableBox(Mat& canva, Rect box, Scalar color, string text) {
+	rectangle(canva, box, color, 1);
+	Rect tiny_box = box;
+	tiny_box.y -= 10;
+	rectangle(canva, box, color, 1);
+	rectangle(canva, tiny_box, color, -1);
+	putText(canva, text, Point(box.x, box.y), FONT_HERSHEY_COMPLEX_SMALL, 0.3, Scalar(255, 255, 255), 1);
+}

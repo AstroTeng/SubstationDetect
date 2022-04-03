@@ -74,11 +74,11 @@ vector<Rect> CalcuCentroid(vector<Rect> oriRect, Mat img) {
 		//rectangle(cpy, oriRect[i], Scalar(200,0,0), 1);
 		//circle(cpy, core, 1, Scalar(0, 0, 200),1);
 		Rect fined = oriRect[i];
-		double finedLength = max(fined.width, fined.height);
-		fined.x = core.x - finedLength / 2;
-		fined.y = core.y - finedLength / 2;
-		fined.width = finedLength;
-		fined.height = finedLength;
+		//double finedLength = max(fined.width, fined.height);
+		fined.x = core.x - fined.width / 2;
+		fined.y = core.y - fined.height / 2;
+		//fined.width = finedLength;
+		//fined.height = finedLength;
 		out.push_back(fined);
 	}
 	cout << "完成" << endl;
@@ -335,7 +335,7 @@ void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
 
 
 	double ratio = 750 / (double)img.rows;
-	//resize(img, img, Size(0, 0), ratio, ratio);
+
 	vector<bbox_t> eleBoxes = subDetect.detect(img_path);
 
 	for (int index = 0; index < eleBoxes.size(); index++) {
@@ -345,7 +345,7 @@ void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
 	vector<Rect> eleRectsFined = CalcuCentroid(eleRects, img);
 	for (int index = 0; index < eleRectsFined.size(); index++) {
 		rectangle(img2, eleRectsFined[index], Scalar(255, 255, 255), -1);
-		subTopo.AddObj(eleRectsFined[index], eleBoxes[index].obj_id);
+		subTopo.AddObj(eleRectsFined[index], eleBoxes[index].obj_id);//在此处往拓扑识别类中添加图元方框
 	}
 		
 
@@ -354,14 +354,14 @@ void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
 	threshold(img2, img2, 200, 255, THRESH_BINARY);
 	cvtColor(img2, img2, COLOR_RGB2GRAY);
 	Canny(img2, img2, 3, 9, 3);
-	Mat e3 = getStructuringElement(MORPH_CROSS, Size(5, 5));
+	Mat e3 = getStructuringElement(MORPH_CROSS, Size(3, 3));
 	for (int i = 0; i < 1; i++) {
 		dilate(img2, img2, e3, Point(-1, -1), 1, BORDER_CONSTANT);
 	}
 	findContours(img2, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
 	for (int i = 0; i < contours.size(); i++) {//绘制导线
 		subTopo.AddObj(contours[i]);//在此处往拓扑识别类中添加导线自由线框
-		//drawContours(img, contours, i, Scalar(0,0,255), 1);
+		//drawContours(img, contours, i, Scalar(0,0,0), -1);
 		//imshow("1", img);
 		//waitKey(1);
 	}
@@ -370,17 +370,24 @@ void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
 		if (subTopo.objTypeVessel[index] == subTopo.classes - 1) continue;
 		if (subTopo.objTypeVessel[index] == subTopo.classes ) continue;
 		if (subTopo.objTypeVessel[index] == subTopo.classes + 1) continue;
-		putText(img, to_string(index),
-			subTopo.objPixelVessel[index][0], FONT_HERSHEY_SCRIPT_SIMPLEX, 0.5, Scalar(200, 20, 200),2);
-
+		putText(img, to_string(index),subTopo.objPixelVessel[index][0], 
+			FONT_HERSHEY_SCRIPT_SIMPLEX, 0.4, subEleColors[subTopo.objTypeVessel[index]],1);
+		drawContours(img, subTopo.objPixelVessel, index, subEleColors[subTopo.objTypeVessel[index]], 1);
+		//SetLableBox(img, eleRectsFined[index], subEleColors[subTopo.objTypeVessel[index]], to_string(index));
 	}
 
 	subTopo.SetSize(img2.size());
 	subTopo.ResetGraph();
 	subTopo.DetectTopo();
+	C_YELLOW;
+	cout << "拓扑检测结果：" << endl;
+	C_NONE;
 	subTopo.ShowTopo(TOPO_LINE_EXCEPT);
+
+	resize(img, img, Size(0, 0), ratio, ratio);
 	imshow("img", img);
 	waitKey();
+	destroyWindow("img");
 }
 int main()
 {
@@ -492,7 +499,13 @@ int main()
 		return 0;
 	}
 	else if (1) {
-		DetectPipeline2("data\\obj.cfg", "data\\obj_last8000.weights", "pics\\neatopo1.jpg");
+		while (1) {
+			cout << "请输入检测图片路径:" << endl;
+			string path;
+			cin >> path;
+			DetectPipeline2("data\\obj.cfg", "data\\obj_last8000.weights", path);
+		}
+
 		return 0;
 	}
 
