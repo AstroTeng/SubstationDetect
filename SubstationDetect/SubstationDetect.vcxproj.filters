@@ -15,12 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CNNet.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Detect.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="ElementGenerate.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -44,13 +38,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CNNet.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="CoutShape.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Detect.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="ElementGenerate.h">

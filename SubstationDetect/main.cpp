@@ -3,11 +3,9 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
-#include "ElementGenerate.h"
-#include "CNNet.h"
-#include "NeuronNet.h"
 #include "CoutShape.h"
-#include "Detect.h"
+#include "ElementGenerate.h"
+#include "NeuronNet.h"
 #include "TopoDetect.h"
 #include "TopoDetectYolo.h"
 #include <yolo_v2_class.hpp>
@@ -391,98 +389,6 @@ void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
 }
 int main()
 {
-
-	
-	//卷积核训练测试代码
-	/*Layer_cnn l1(1, 20, 21);
-	Layer_cnn l2(20, 1, 21);
-	l1.Randomize();
-	l2.Randomize();
-	Matrix_mat in ;
-	Matrix_mat last;
-	in = PicLoad2("pics\\2.jpg", false);
-	last = PicLoad2("pics\\2-标记.jpg", false);
-	resize(in.element[0][0], in.element[0][0], Size(in.element[0][0].cols * (400.0 / in.element[0][0].rows), 400));
-	resize(last.element[0][0], last.element[0][0], Size(last.element[0][0].cols * (400.0 / last.element[0][0].rows), 400));
-	Matrix_mat tmp;
-		l1.Forward(in, ACT_RELU);
-		l2.Forward(l1.output_a, ACT_RELU);
-		normalize(l2.output_a.element[0][0], l2.output_a.element[0][0], 0, 1, NORM_MINMAX);
-	
-		tmp = l2.output_a - last;
-		l2.Backward(tmp, ACT_RELU);
-		PicOutStack(l2.delta_in, "pics\\test-new\\delta");
-		l1.Backward(l2.delta_out, ACT_RELU);
-
-		l1.Grad(in);
-		l2.Grad(l1.output_a);
-
-		l1.Update(0.001);
-		l2.Update(0.001);
-
-		l1.Forward(in, ACT_RELU);
-		l2.Forward(l1.output_a, ACT_RELU);
-		
-
-		PicOutStack(l1.output_a, "pics\\test-new\\l1");
-		PicOutStack(l2.output_a, "pics\\test-new\\l2");
-		PicOutStack(l1.conv, "pics\\test-new\\conv1");
-		PicOutStack(l2.conv, "pics\\test-new\\conv2");
-
-
-
-	return 0;*/
-
-	//生成随机线
-	//RNG rng(getTickCount());
-	//ElementGenerate Line(128, 128, "pics\\seg-train\\");
-	//for (int i = 0; i < 152; i++) {
-	//	Line.PureLine(rng);
-	//	rng.next();
-	//}
-
-	//S.ShowSeg();
-	//S.SegUp();
-	//LableUp("pics\\segement-elementsA\\");
-	//return 0;
-	//while (1){
-	//	String ipath;
-	//	cin >> ipath;
-	//	Mat src = imread(ipath);
-	//	ImgBinar(src);
-	//	imshow(" ", src);
-	//	waitKey(0);
-	//}
-	/*Net Seg1("Seg1", 16, 16, 10);
-	Seg1.Add(Layer_cnn(1, 4, 5));
-	Seg1.Add(Layer_pool(4, 64));
-	Seg1.Add(Layer_cnn(4, 10, 5));
-	Seg1.Add(Layer_pool(10, 32));
-	Seg1.Add(Layer_fc(Seg1.l_row * Seg1.l_col * Seg1.l_chan, 40));
-	Seg1.Add(Layer_fc(40, 2));
-	Seg1.n_buff = nameBuffer3;
-
-	Net Seg12("Seg12", 16, 16, 15);
-	Seg12.Add(Layer_cnn(1, 5, 3));
-	Seg12.Add(Layer_cnn(5, 10, 3));
-	Seg12.Add(Layer_pool(10, 64));
-	Seg12.Add(Layer_cnn(10, 15, 5));
-	Seg12.Add(Layer_pool(15, 32));
-	Seg12.Add(Layer_fc(Seg12.l_row * Seg12.l_col * Seg12.l_chan, 40));
-	Seg12.Add(Layer_fc(40, 2));
-	Seg12.n_buff = nameBuffer3;
-
-	Net New1("New1", 16, 16, 20);
-	New1.Add(Layer_cnn(1, 5, 3));
-	New1.Add(Layer_cnn(5, 10, 3));
-	New1.Add(Layer_pool(10, 64));
-	New1.Add(Layer_cnn(10, 20, 5));
-	New1.Add(Layer_pool(20, 32));
-	New1.Add(Layer_fc(New1.l_row * New1.l_col * New1.l_chan, 120));
-	New1.Add(Layer_fc(120, 6));
-	New1.n_buff = nameBuffer2;*/
-	
-
 	Net New2("New2", 16, 16, 20);
 	New2.Add(Layer_cnn(1, 5, 3));
 	New2.Add(Layer_cnn(5, 10, 3));
@@ -492,7 +398,6 @@ int main()
 	New2.Add(Layer_fc(New2.l_row* New2.l_col* New2.l_chan, 160));
 	New2.Add(Layer_fc(160, 8));
 	New2.n_buff = nameBuffer1;
-
 	//GeneratePipeline();
 	if (0) {
 		DetectPipeline("pics\\draw1.jpg", &New2, "data-new\\New2-c4.dat");
@@ -505,16 +410,11 @@ int main()
 			cin >> path;
 			DetectPipeline2("data\\obj.cfg", "data\\obj_last8000.weights", path);
 		}
-
 		return 0;
 	}
-
 	vector<String>imgVessel;
 	PathFetch(imgVessel, "jpg", IMG_PATH);
-
 	cout << "已从" << IMG_PATH << "载入" << imgVessel.size() << "张图片" << endl;
-	
-	//return 0;
 	Net net = New2
 		;
 	ElementGenerate T(128, 128, IMG_PATH);
@@ -718,125 +618,3 @@ int main()
 void TrainingPipeline() {
 	
 }
-//void OutputPrint(vector<Mat> output, String path) {//利用该函数将一层的特征图归一化后输出
-//	for (int i = 0; i < output.size(); i++) {
-//		Mat show;
-//		normalize(output[i], show, 0, 255, NORM_MINMAX);
-//		imwrite(path + to_string(i) + ".jpg", show);
-//	}
-//}
-//void AllRandomization() {
-//	cnn1.Randomization();
-//	cnn2.Randomization();
-//	cnn3.Randomization();
-//	fc1.Randomization();
-//	fc2.Randomization();
-//}
-//void AllLoad() {
-//	cnn1.LoadData("data\\1.cnn");
-//	cnn2.LoadData("data\\2.cnn");
-//	cnn3.LoadData("data\\3.cnn");
-//	fc1.LoadData("data\\1.fc");
-//	fc2.LoadData("data\\2.fc");
-//}
-//void AllSave() {
-//	cnn1.SaveData("data\\1.cnn");
-//	cnn2.SaveData("data\\2.cnn");
-//	cnn3.SaveData("data\\3.cnn");
-//	fc1.SaveData("data\\1.fc");
-//	fc2.SaveData("data\\2.fc");
-//}
-//double Forward(String path) {//正向传播序列
-//	cout << "对 " << path << " 进行前向传播" << endl;
-//	cnn1.Forward(LoadPicture(path));
-//	pool1.Forward(cnn1.output_a);
-//	cnn2.Forward(pool1.output);
-//	pool2.Forward(cnn2.output_a);
-//	cnn3.Forward(pool2.output);
-//	pool3.Forward(cnn3.output_a);
-//	flatted = Flatten(pool3.output);
-//	fc1.Forward(flatted);
-//	fc2.Forward(fc1.output_a);
-//	Prediction(fc2.output_a);
-//	int lable;
-//	for (int i = 0; i < TOTAL_ELEMENT; i++) {
-//		if (nameBuffer[i] == LabelFetch(path)) {
-//			lable = i;
-//			break;
-//		}
-//		if (i == TOTAL_ELEMENT - 1) {
-//			cout << "未知的图片标签！" << endl;
-//			return -1;
-//		}
-//	}
-//	double loss;
-//	loss = -(log(fc2.output_a[lable]));//交叉熵作为损失函数
-//	cout << "对于标签 " << lable << " 的损失值为 " << loss << endl;
-//	return loss;
-//	
-//
-//}
-//void Backward(String path) {//反向传播序列
-//	int lable;
-//	for (int i = 0; i < TOTAL_ELEMENT; i++) {
-//		if (nameBuffer[i] == LabelFetch(path)) {
-//			lable = i;
-//			break;
-//		}
-//		if (i == TOTAL_ELEMENT - 1) {
-//			cout << "未知的图片标签！" << endl;
-//			return;
-//		}
-//	}
-//
-//	fc2.delta = fc2.output_z;
-//	fc2.delta[lable] -= 1;
-//	fc1.Backward(fc2);
-//	unflatted = UnFlatten(fc1, 8, 8, 20);
-//	pool3.Backward(unflatted);//注：每一层pool的delta值对应着上一层求梯度时所用的delta值
-//	cnn3.Backward(pool3.delta);
-//	pool2.Backward(cnn3.delta);
-//	cnn2.Backward(pool2.delta);
-//	pool1.Backward(cnn2.delta);
-//	fc2.Grad(fc2.delta, fc1.output_a);//计算梯度
-//	fc1.Grad(fc1.delta, flatted);
-//	cnn3.Grad(pool3.delta, pool2.output);
-//	//cnn2.Grad(pool2.delta, pool1.output);
-//	//cnn1.Grad(pool1.delta, LoadPicture(path));
-//}
-//void Learn() {//用梯度更新权重
-//	cout << "权重更新中" << endl;
-//	fc1.Update(LEARNING_RATE / BATCH);
-//	fc2.Update(LEARNING_RATE / BATCH);
-//	cnn1.Update(LEARNING_RATE / BATCH);
-//	cnn2.Update(LEARNING_RATE / BATCH);
-//	cnn3.Update(LEARNING_RATE / BATCH);
-//
-//}
-//vector<Mat> LoadPicture(String path) {
-//	vector<Mat>vessel;
-//	vessel.push_back(imread(path));
-//	bitwise_not(vessel[0], vessel[0]);
-//	if (vessel[0].type() != CV_64FC1) {
-//		for (int i = 0; i < vessel.size(); i++) {
-//			cvtColor(vessel[i], vessel[i], COLOR_RGB2GRAY);//将输入的所有转换为灰度图像
-//			vessel[i].convertTo(vessel[i], CV_64FC1);
-//			vessel[i] /= 255.0;//归一化
-//			//cout << input[i].type() << endl;
-//		}
-//		cout << "已完成灰度化" << endl;
-//	}
-//	resize(vessel[0], vessel[0], Size(64, 64));
-//	return vessel;
-//}
-//void OutputImg() {
-//
-//
-//	//OutputPrint(cnn1.output_a, "pic\\output\\cnn1_output_");
-//OutputPrint(pool1.output, "pics\\output\\pool1_output_");
-////OutputPrint(cnn2.output_a, "pics\\output\\cnn2_output_");
-//OutputPrint(pool2.output, "pics\\output\\pool2_output_");
-////OutputPrint(cnn3.output_a, "pics\\output\\cnn3_output_");
-//OutputPrint(pool3.output, "pics\\output\\pool3_output_");
-//cout << "卷积中间结果已保存至pics\\output\\" << endl;
-//}
