@@ -9,6 +9,7 @@
 #include "TopoDetect.h"
 #include "TopoDetectYolo.h"
 #include <yolo_v2_class.hpp>
+
 using namespace std;
 using namespace cv;
 static String nameBuffer1[8] = {
@@ -70,9 +71,9 @@ vector<Rect> CalcuCentroid(vector<Rect> oriRect, Mat img) {
 		X /= T;
 		Point core(X, Y);
 		//rectangle(cpy, oriRect[i], Scalar(200,0,0), 1);
-		//circle(cpy, core, 1, Scalar(0, 0, 200),1);
+		//circle(img, core, 1, Scalar(0, 0, 200),1);
 		Rect fined = oriRect[i];
-		//double finedLength = max(fined.width, fined.height);
+		double finedLength = max(fined.width, fined.height);
 		fined.x = core.x - fined.width / 2;
 		fined.y = core.y - fined.height / 2;
 		//fined.width = finedLength;
@@ -327,50 +328,71 @@ void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
 	TopoDetectYolo subTopo(9);
 	Detector subDetect(cfg_path, weight_path);
 	vector<Rect> eleRects;
-
+#define ADJ_PIXELS 1
 	Mat img = imread(img_path);
 	Mat img2 = img.clone();
 
-
-	double ratio = 750 / (double)img.rows;
-
-	vector<bbox_t> eleBoxes = subDetect.detect(img_path);
+	
+	double ratio = 700 / (double)img.rows;
+	vector<bbox_t> eleBoxes = subDetect.detect(img_path, 0.5);
 
 	for (int index = 0; index < eleBoxes.size(); index++) {
 		Rect rect(eleBoxes[index].x, eleBoxes[index].y, eleBoxes[index].w, eleBoxes[index].h);
 		eleRects.push_back(rect);
 	}
 	vector<Rect> eleRectsFined = CalcuCentroid(eleRects, img);
+	//eleRectsFined = CalcuCentroid(eleRectsFined, img);
 	for (int index = 0; index < eleRectsFined.size(); index++) {
-		rectangle(img2, eleRectsFined[index], Scalar(255, 255, 255), -1);
+
+		//eleRectsFined[index].x -= ADJ_PIXELS;
+		//eleRectsFined[index].y -= ADJ_PIXELS;
+		//eleRectsFined[index].width += ADJ_PIXELS * 2;
+		//eleRectsFined[index].height += ADJ_PIXELS * 2;
+		rectangle(img2, eleRectsFined[index], Scalar(255, 255, 255), -1);//消去除了导线以外的元素
+		eleRectsFined[index].x -= ADJ_PIXELS;
+		eleRectsFined[index].y -= ADJ_PIXELS;
+		eleRectsFined[index].width += ADJ_PIXELS * 2;
+		eleRectsFined[index].height += ADJ_PIXELS * 2;
 		subTopo.AddObj(eleRectsFined[index], eleBoxes[index].obj_id);//在此处往拓扑识别类中添加图元方框
 	}
 		
 
 	vector<vector<Point>> contours;
 	vector<Vec4i> hierarchy;
-	threshold(img2, img2, 200, 255, THRESH_BINARY);
+	threshold(img2, img2, 150, 255, THRESH_BINARY);
 	cvtColor(img2, img2, COLOR_RGB2GRAY);
-	Canny(img2, img2, 3, 9, 3);
-	Mat e3 = getStructuringElement(MORPH_CROSS, Size(3, 3));
+	
+	Mat e3 = getStructuringElement(MORPH_CROSS, Size(2, 2));
 	for (int i = 0; i < 1; i++) {
-		dilate(img2, img2, e3, Point(-1, -1), 1, BORDER_CONSTANT);
+		//erode(img2, img2, e3, Point(-1, -1), 1, BORDER_CONSTANT);
 	}
-	findContours(img2, contours, hierarchy, RETR_EXTERNAL, CHAIN_APPROX_NONE);
+	imshow("erode", img2);
+	//waitKey();
+	//Canny(img2, img2, 0, 0, 3);
+	//imshow("cannny", img2);
+	//waitKey();
+	Mat img3(img2.size(), CV_32FC3, Scalar(0, 0, 0));
+	findContours(img2, contours, hierarchy, RETR_LIST, CHAIN_APPROX_NONE);
 	for (int i = 0; i < contours.size(); i++) {//绘制导线
 		subTopo.AddObj(contours[i]);//在此处往拓扑识别类中添加导线自由线框
-		//drawContours(img, contours, i, Scalar(0,0,0), -1);
-		//imshow("1", img);
-		//waitKey(1);
+		drawContours(img3, contours, i, Scalar(255,255,255), 1);
+
 	}
+	imshow("contours", img3);
 	for (int index = 0; index < subTopo.objPixelVessel.size(); index++) {
 		Scalar color(0, 0, 255);
 		if (subTopo.objTypeVessel[index] == subTopo.classes - 1) continue;
 		if (subTopo.objTypeVessel[index] == subTopo.classes ) continue;
 		if (subTopo.objTypeVessel[index] == subTopo.classes + 1) continue;
-		putText(img, to_string(index),subTopo.objPixelVessel[index][0], 
-			FONT_HERSHEY_SCRIPT_SIMPLEX, 0.4, subEleColors[subTopo.objTypeVessel[index]],1);
 		drawContours(img, subTopo.objPixelVessel, index, subEleColors[subTopo.objTypeVessel[index]], 1);
+		Point textPoint = subTopo.objPixelVessel[index][0];
+		int lableBoxLength = 20;
+		int lableBoxHeight = 7;
+		Rect lableBox(textPoint.x, textPoint.y - lableBoxHeight, lableBoxLength, lableBoxHeight);
+		rectangle(img, lableBox, subEleColors[subTopo.objTypeVessel[index]], -1);
+		putText(img, to_string(index),textPoint, 
+			FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255,255,255),1);
+
 		//SetLableBox(img, eleRectsFined[index], subEleColors[subTopo.objTypeVessel[index]], to_string(index));
 	}
 
@@ -381,14 +403,41 @@ void DetectPipeline2(string cfg_path, string weight_path, string img_path) {
 	cout << "拓扑检测结果：" << endl;
 	C_NONE;
 	subTopo.ShowTopo(TOPO_LINE_EXCEPT);
+	/*for (int index = 0; index < subTopo.objTypeVessel.size(); index++)
+		if (subTopo.objTypeVessel[index] == subTopo.classes + 1) {
+			vector<int> tmp=subTopo.GetAllLine(subTopo.adjGraphLine, index);
+			cout << "导线" << index << "和：";
+			for (int i = 0; i < tmp.size(); i++)
+				cout << "导线" << tmp[i] << ",";
+			cout << "相连" << endl;
+		}*/
 
-	resize(img, img, Size(0, 0), ratio, ratio);
-	imshow("img", img);
-	waitKey();
-	destroyWindow("img");
+	//resize(img, img, Size(0, 0), ratio, ratio, INTER_NEAREST);
+	subTopo.DetectGapBus();
+	//subTopo.DetectGapBus2();
+	for (int index = 0; index < subTopo.objPixelVessel.size(); index++) {
+		if (subTopo.busTypeVessel[index] == 0)continue;
+		drawContours(img, subTopo.objPixelVessel, index, Scalar(0, 0, 128), -1);
+		
+	}
+	for (int index = 0; index < subTopo.objPixelVessel.size(); index++) {
+		if (subTopo.busTypeVessel[index] == 0)continue;
+		Point textPoint = subTopo.objPixelVessel[index][0];
+		int lableBoxLength = 20;
+		int lableBoxHeight = 7;
+		Rect lableBox(textPoint.x, textPoint.y - lableBoxHeight, lableBoxLength, lableBoxHeight);
+		rectangle(img, lableBox, Scalar(0, 0, 128), -1);
+		putText(img, to_string(index), textPoint,
+			FONT_HERSHEY_SIMPLEX, 0.3, Scalar(255, 255, 255), 1);
+
+	}
+
+		imshow("img", img);
+	
 }
 int main()
 {
+
 	Net New2("New2", 16, 16, 20);
 	New2.Add(Layer_cnn(1, 5, 3));
 	New2.Add(Layer_cnn(5, 10, 3));
@@ -408,7 +457,13 @@ int main()
 			cout << "请输入检测图片路径:" << endl;
 			string path;
 			cin >> path;
-			DetectPipeline2("data\\obj.cfg", "data\\obj_last8000.weights", path);
+			DetectPipeline2("data\\obj.cfg", "data\\yolov4-tiny-obj_last.weights", path);
+			cout << "按任意键继续，ESC退出程序" << endl;
+			int key = waitKey();
+			if (key == 27) break;
+			destroyWindow("img");
+			destroyWindow("contours");
+			destroyWindow("erode");
 		}
 		return 0;
 	}
